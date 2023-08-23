@@ -30,7 +30,7 @@
 1. Install kube-prometheus-stack
 
     ```
-    helm install prometheus grafana-charts/charts/kube-prometheus-stack 
+    helm install prometheus monitoring-charts/charts/kube-prometheus-stack 
     ```
     
 
@@ -52,9 +52,17 @@
     - username: admin
     - password: prom-operator
 
-4. Confirm we have prometheus and alertmanager configured by visiting `Connections > Data sources`
+4. Confirm we have prometheus configured by visiting `Connections > Data sources`
 
 ![](/docs/connections-data-sources.png)
+
+If prometheus doesn't appear in the list we should add it manually. 
+
+First check we have the prometheus pod running
+
+![](/docs/grafana-prometheus-running-mark-prom.png)
+
+When adding a new data source, make sure we are using this as the prometheus server url: `http://prometheus-stack-kube-prom-prometheus.default:9090`
 
 ### Steps to start the demo app
 
@@ -74,7 +82,7 @@ helm install kuard-release kuard-chart
 kubectl port-forward kuard-74675c74d6-fdm48 8080:8080
 ```
 
-visiting [localhost:8080](localhost:8080) shoudl show you the following screen:
+visiting [localhost:8080](localhost:8080) should show you the following screen:
 
 ![](docs/kuard-app-running.png)
 
@@ -94,7 +102,7 @@ visiting [localhost:8080](localhost:8080) shoudl show you the following screen:
 
     Notice how we don't need to enable grafana nor prometheus as its already installed via the kube-prometheus-stack (from the monitoring stack).
 
-    Loki allows you to fine tune your selection of logs. From a specific node, namespace, container or even a specific pod
+    Loki allows you to fine tune your selection of logs. From a specific node, namespace, container or even a specific pod.
     
     ![](docs/loki-categories.png)
 
@@ -108,9 +116,11 @@ visiting [localhost:8080](localhost:8080) shoudl show you the following screen:
 
 3. **Detect templating error before a deployment**
 
-    In the CI/CD pipeline, before executing the deployment we would have a step to run the `helm lint` command in each of the charts    
+    In the CI/CD pipeline, before executing the deployment we would have a step to run the `helm lint` command in each of the charts. This will prevent us deploying any error prone template.
 
 4. **Resetting failed deployment**
+    
+    Helm provides easy mechanism to resetting a failed deployment: `rollback``
     
     To rollback to the previous release
 
@@ -133,8 +143,15 @@ visiting [localhost:8080](localhost:8080) shoudl show you the following screen:
 
 6. **Which CI/CD tool would be my tool of choice**
 
-    Either Github Actions or Gitlab CI/CD (depends where the repo is hosted)
+    Either Github Actions or Gitlab CI/CD (depends where the repo is hosted).
 
+    **Github Actions**
+
+    Adding a `.github` folder would be the first step, then we would have to add the folder `.github/worflows` which will have a yaml for each worfklow where we define the steps its made up of. 
+
+    **Gitlab CI/CD**
+
+    Gitlab requires a `.gitlab-ci.yml` with all the the different steps and conditions for each step to run.
 ## 4. Extra Questions 
 
 ### How do i put applications behind ingress controller, and what are ingress controllers used for?
@@ -165,7 +182,7 @@ After DNS propagation, your applications should be accessible through the config
 1. Storing secrets as repository variables in Github (Or Gitlab), having a find and replace step that switches the value placeholder for the value from github just before running the helm update / kubectl apply. 
 2. Using the Secret Store CSI Driver (with which ever flavour is preffered: AWS Secret store, Hashicop Vault). AWS Secret Store allows you to easily rotate, manage, and retrieve database credentials, API keys, certificates, and other secrets throughout their lifecycle. The  Secret Store CSI Driver allows secrets stored in manager to appear as files in Kubernetes pods, these can be mounted as enviroment variables.
 
-I would go with option 2 as it allows all secrets to be centralised in the AWS Secret Store Console, and provides a cleaner approach, and this way you dont have secrets lingering in the repository's config section.
+I would go with option 2 as it allows all secrets to be centralised in the AWS Secret Store Console, and provides a cleaner approach, and this way you won't have secrets lingering in the repository's settings.
 
 ### Completely remove data worth protecting that was mistakenly stored in plain text
 
