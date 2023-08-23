@@ -6,6 +6,11 @@
   - [Steps to start the demo app](#steps-to-start-the-demo-app)
 - [3. DevOps Challenge - Questions](#3-devops-challenge---questions)
 - [4. Extra Questions](#4-extra-questions)
+  - [How do i put applications behind ingress controller, and what are ingress controllers used for?](#how-do-i-put-applications-behind-ingress-controller-and-what-are-ingress-controllers-used-for)
+    - [what are ingress controller used for:](#what-are-ingress-controller-used-for)
+    - [How do you put applications behind ingress controller.](#how-do-you-put-applications-behind-ingress-controller)
+  - [Options for storing sensitive data such as secrets](#options-for-storing-sensitive-data-such-as-secrets)
+  - [Completely remove data worth protecting that was mistakenly stored in plain text](#completely-remove-data-worth-protecting-that-was-mistakenly-stored-in-plain-text)
 
 ## 1. Intro
 ### Pre-requisites
@@ -16,7 +21,7 @@
 
 ### On grafana/prometheus
 
-- I will be using the the chart kube-prometheus-stack from prometheus's helm charts. Its a collection of Kubernetes manifests,  dashboards, and  combined with documentation and scripts to provide easy to operate end-to-end Kubernetes cluster monitoring with Prometheus using the Prometheus Operator.
+  I will be using  the chart kube-prometheus-stack from prometheus's helm charts. Its a collection of Kubernetes manifests,  dashboards, and  combined with documentation and scripts to provide easy to operate end-to-end Kubernetes cluster monitoring with Prometheus using the Prometheus Operator.
 
 ## 2. Getting up and running
 
@@ -31,7 +36,7 @@
 
 2. Confirm pods are running by running `kubectl get pods`
 
-    You should be seeing something similar to this:
+   You should be seeing something similar to this:
 
   ![grafana-prometheus-running](docs/grafana-prometheus-running.png)
 
@@ -73,6 +78,9 @@ visiting [localhost:8080](localhost:8080) shoudl show you the following screen:
 
 ![](docs/kuard-app-running.png)
 
+4. showing prometheus data for job kuad in grafana
+
+![](docs/job-kuad-grafana.png)
 
 ## 3. DevOps Challenge - Questions
 
@@ -121,10 +129,61 @@ visiting [localhost:8080](localhost:8080) shoudl show you the following screen:
    demo app uses the go_lang client prometheus, so we have typical go related stats:
    - go allocatable memory
    - go used memory
-   - etc...
+   - full list of metrics available [here](/docs/metrics.txt)
 
 6. **Which CI/CD tool would be my tool of choice**
 
     Either Github Actions or Gitlab CI/CD (depends where the repo is hosted)
 
 ## 4. Extra Questions 
+
+### How do i put applications behind ingress controller, and what are ingress controllers used for?
+
+#### what are ingress controller used for:
+
+Ingress controllers are used to manage external access to services within a Kubernetes cluster. They provide a way to expose services to the outside world without exposing the underlying pod IPs. 
+
+#### How do you put applications behind ingress controller.
+
+To put applications behind an Ingress controller, you follow these steps:
+
+1. Install ingress controller
+An Ingress controller is a Kubernetes resource that manages external access to services within your cluster. You need to install an Ingress controller, such as Nginx Ingress Controller, Traefik, or HAProxy Ingress.
+2. Create an Ingress Resource:
+Define an Ingress resource that specifies the rules for routing external traffic to your services. This includes hostnames, paths, and the associated service to forward traffic to.
+3. Deploy Your Applications:
+Deploy your applications as Kubernetes services and ensure they are correctly labeled. These labels will be used to match the services with the Ingress rules.
+4. Configure Ingress Rules:
+In your Ingress resource, set up rules that define how traffic should be directed to your services. You can configure path-based routing, SSL termination, and more.
+5. Configure DNS:
+Update your DNS records to point to the IP or hostname associated with your Ingress controller's load balancer or service.
+6. Access Applications:
+After DNS propagation, your applications should be accessible through the configured routes defined in the Ingress resource.
+
+### Options for storing sensitive data such as secrets
+
+1. Storing secrets as repository variables in Github (Or Gitlab), having a find and replace step that switches the value placeholder for the value from github just before running the helm update / kubectl apply. 
+2. Using the Secret Store CSI Driver (with which ever flavour is preffered: AWS Secret store, Hashicop Vault). AWS Secret Store allows you to easily rotate, manage, and retrieve database credentials, API keys, certificates, and other secrets throughout their lifecycle. The  Secret Store CSI Driver allows secrets stored in manager to appear as files in Kubernetes pods, these can be mounted as enviroment variables.
+
+I would go with option 2 as it allows all secrets to be centralised in the AWS Secret Store Console, and provides a cleaner approach, and this way you dont have secrets lingering in the repository's config section.
+
+### Completely remove data worth protecting that was mistakenly stored in plain text
+
+1. BFG Repo Cleaner - [link](https://rtyley.github.io/bfg-repo-cleaner/)
+
+```
+bfg --delete-files YOUR-FILE-WITH-SENSITIVE-DATA
+git push origin --force 
+```
+
+2. Using git filter-repo
+
+```sh
+#install
+brew install git-filter-repo
+
+git filter-repo --invert-paths --path PATH-TO-YOUR-FILE-WITH-SENSITIVE-DATA
+echo "YOUR-FILE-WITH-SENSITIVE-DATA" >> .gitignore
+git add .gitignore
+git push origin --force --all
+```
